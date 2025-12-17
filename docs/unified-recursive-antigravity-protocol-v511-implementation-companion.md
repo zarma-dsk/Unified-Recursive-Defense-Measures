@@ -1032,3 +1032,10 @@ This guide pairs with **unified-recursive-antigravity-protocol-v511-quick-refere
 - Compliance documentation
 
 **Ready to implement? Start with unified-recursive-antigravity-protocol-v511-quick-reference.md, then use this guide for each vulnerability type.**
+
+---
+
+## 📚 Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).

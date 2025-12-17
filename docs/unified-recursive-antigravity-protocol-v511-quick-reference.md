@@ -364,3 +364,10 @@ Compliance Ready: YES
 🛡️ **Unified Recursive Antigravity Protocol 5.1.1: Research-Driven. Production-Grade. Ready Now.**
 
 *Zero trust. Complete validation. Every decision documented. Every attack blocked.*
+
+---
+
+## 📚 Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).

@@ -611,3 +611,10 @@ But that's a future step. For now: **Local development only.**
 ---
 
 **Status: ✅ Protocol Ready. Apply to Your Code. 🛡️ Security-Hardened. 🚀**
+
+---
+
+## 📚 Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).

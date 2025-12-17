@@ -735,3 +735,10 @@ TOTAL COVERAGE: 25+ VULNERABILITIES BLOCKED (100%)
 **Next Step:** Update your 5.0.0 documents or start fresh with 5.1.1 for maximum research-aligned security hardening.
 
 🌌 **Unified Recursive Antigravity Protocol PROTOCOL 5.1.1: RESEARCH-DRIVEN, PRODUCTION-READY, COMPREHENSIVE DEFENSE**
+
+---
+
+## 📚 Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).

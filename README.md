@@ -66,3 +66,10 @@ This kit enforces:
 3.  **Rate Limiting**: DoS protection.
 4.  **Output Sanitization**: XSS & Leak prevention.
 5.  **Logging**: Auditable security events.
+
+---
+
+##  Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./docs/unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).

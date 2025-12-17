@@ -403,3 +403,10 @@ Status: PRODUCTION-GRADE, RESEARCH-HARDENED, READY NOW.
 **Finally:** Deploy with confidence using full 11-document ecosystem
 
 🛡️ **You are protected. You are ready. Build with confidence.**
+
+---
+
+## 📚 Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).

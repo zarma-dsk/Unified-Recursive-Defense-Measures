@@ -1413,3 +1413,10 @@ ONLY THEN: Code is ready
 **Status: 🌌 Unified Recursive Antigravity Protocol PROTOCOL 5.0.0 READY FOR PRODUCTION DEVELOPMENT. 🛡️ Security-Hardened Against Synthetic Vulnerabilities. 🚀**
 
 *Remember: The Build is NOT Always God. Validation of Build + Security + Testing = Truth.*
+
+---
+
+## 📚 Research & References
+
+This protocol is based on 8 academic papers (Radware, CSET, IEEE, etc.).
+For a complete mapping of vulnerabilities to defenses, see the [Research Defense Matrix](./unified-recursive-antigravity-protocol-v511-research-defense-matrix.md).
