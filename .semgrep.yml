@@ -1,0 +1,31 @@
+rules:
+  - id: no-raw-sql
+    pattern: |
+      $QUERY = f"...$USER_INPUT..."
+    message: "Raw SQL with user input detected (SQL injection risk). Use parameterized queries or ORM methods instead."
+    languages: [typescript, javascript]
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query(`...${$VAR}...`)
+          - pattern: |
+              $DB.execute(`...${$VAR}...`)
+
+  - id: no-eval
+    pattern: eval(...)
+    message: "eval() is dangerous and can lead to code injection. Avoid dynamic code execution."
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: weak-crypto
+    pattern: crypto.createHash('md5')
+    message: "MD5 is cryptographically broken and should not be used for security purposes. Use SHA-256 or stronger."
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  - id: danger-dangerously-set-inner-html
+    pattern: "dangerouslySetInnerHTML={{ __html: ... }}"
+    message: "Use of dangerouslySetInnerHTML can lead to XSS. Ensure content is sanitized with dompurify."
+    languages: [typescript, javascript, tsx, jsx]
+    severity: WARNING
