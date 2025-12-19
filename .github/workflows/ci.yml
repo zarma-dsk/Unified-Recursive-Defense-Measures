@@ -2,9 +2,9 @@ name: Antigravity CI
 
 on:
   push:
-    branches: [main, master, mvp]
+    branches: [main, master, mvp, deploy]
   pull_request:
-    branches: [main, master, mvp]
+    branches: [main, master, mvp, deploy]
 
 jobs:
   validate:

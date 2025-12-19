@@ -18,6 +18,7 @@
     "test:unit": "vitest run tests/unit",
     "test:adversarial": "vitest run tests/adversarial",
     "vet:dependency": "tsx src/security/dependency-validator.ts",
+    "scan:security": "semgrep --config .semgrep.yml",
     "validate:security": "tsx scripts/validate-security.ts",
     "postinstall": "tsx ./scripts/remove-local-npm.ts"
   },
