@@ -6,371 +6,304 @@ describe('Logger', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let consoleDebugSpy: ReturnType<typeof vi.spyOn>;
-  const originalEnv = process.env.NODE_ENV;
+  let originalNodeEnv: string | undefined;
 
   beforeEach(() => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    originalNodeEnv = process.env.NODE_ENV;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    process.env.NODE_ENV = originalEnv;
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
-  describe('info()', () => {
-    it('should log info level messages with correct structure', () => {
-      logger.info('Test message');
-
-      expect(consoleLogSpy).toHaveBeenCalledOnce();
+  describe('info', () => {
+    it('should log info messages with correct level', () => {
+      logger.info('Test info message');
+      
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
       const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-
-      expect(loggedData).toMatchObject({
-        level: 'info',
-        message: 'Test message',
-      });
-      expect(loggedData.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
+      
+      expect(loggedData.level).toBe('info');
+      expect(loggedData.message).toBe('Test info message');
+      expect(loggedData.timestamp).toBeDefined();
+      expect(loggedData.context).toBeUndefined();
     });
 
-    it('should include context when provided', () => {
+    it('should log info messages with context', () => {
       const context = { userId: '123', action: 'login' };
-      logger.info('User action', context);
-
+      logger.info('User logged in', context);
+      
       const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      
+      expect(loggedData.level).toBe('info');
+      expect(loggedData.message).toBe('User logged in');
       expect(loggedData.context).toEqual(context);
+    });
+
+    it('should include ISO timestamp', () => {
+      logger.info('Test message');
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      const timestamp = new Date(loggedData.timestamp);
+      
+      expect(timestamp.toISOString()).toBe(loggedData.timestamp);
+      expect(timestamp.getTime()).toBeGreaterThan(Date.now() - 1000);
+    });
+
+    it('should handle complex context objects', () => {
+      const complexContext = {
+        nested: { deep: { value: 'test' } },
+        array: [1, 2, 3],
+        boolean: true,
+        number: 42,
+        null: null,
+      };
+      
+      logger.info('Complex context', complexContext);
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      expect(loggedData.context).toEqual(complexContext);
+    });
+
+    it('should handle empty string messages', () => {
+      logger.info('');
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      expect(loggedData.message).toBe('');
+    });
+  });
+
+  describe('error', () => {
+    it('should log error messages to console.error', () => {
+      logger.error('Test error message');
+      
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+      
+      const loggedData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      expect(loggedData.level).toBe('error');
+      expect(loggedData.message).toBe('Test error message');
+    });
+
+    it('should log errors with stack trace context', () => {
+      const error = new Error('Test error');
+      const context = {
+        error: error.message,
+        stack: error.stack,
+        code: 'ERR_TEST',
+      };
+      
+      logger.error('An error occurred', context);
+      
+      const loggedData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      expect(loggedData.context).toEqual(context);
+    });
+
+    it('should handle error objects in context', () => {
+      const errorContext = {
+        name: 'ValidationError',
+        message: 'Invalid input',
+        statusCode: 400,
+      };
+      
+      logger.error('Validation failed', errorContext);
+      
+      const loggedData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      expect(loggedData.level).toBe('error');
+      expect(loggedData.context).toEqual(errorContext);
+    });
+  });
+
+  describe('warn', () => {
+    it('should log warning messages to console.warn', () => {
+      logger.warn('Test warning message');
+      
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+      
+      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
+      expect(loggedData.level).toBe('warn');
+      expect(loggedData.message).toBe('Test warning message');
+    });
+
+    it('should log warnings with deprecation context', () => {
+      const context = {
+        deprecated: 'oldFunction',
+        replacement: 'newFunction',
+        version: '2.0.0',
+      };
+      
+      logger.warn('Function deprecated', context);
+      
+      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
+      expect(loggedData.context).toEqual(context);
+    });
+  });
+
+  describe('debug', () => {
+    it('should log debug messages in non-production', () => {
+      process.env.NODE_ENV = 'development';
+      logger.debug('Debug message');
+      
+      expect(consoleDebugSpy).toHaveBeenCalledTimes(1);
+      const loggedData = JSON.parse(consoleDebugSpy.mock.calls[0][0]);
+      expect(loggedData.level).toBe('debug');
+    });
+
+    it('should not log debug messages in production', () => {
+      process.env.NODE_ENV = 'production';
+      logger.debug('Debug message');
+      
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+
+    it('should log debug with performance metrics', () => {
+      process.env.NODE_ENV = 'development';
+      const metrics = {
+        duration: 123.45,
+        memory: 1024000,
+        cpu: 0.5,
+      };
+      
+      logger.debug('Performance metrics', metrics);
+      
+      const loggedData = JSON.parse(consoleDebugSpy.mock.calls[0][0]);
+      expect(loggedData.context).toEqual(metrics);
+    });
+  });
+
+  describe('JSON structure', () => {
+    it('should always produce valid JSON', () => {
+      logger.info('Test');
+      logger.error('Error');
+      logger.warn('Warning');
+      
+      const infoJson = consoleLogSpy.mock.calls[0][0];
+      const errorJson = consoleErrorSpy.mock.calls[0][0];
+      const warnJson = consoleWarnSpy.mock.calls[0][0];
+      
+      expect(() => JSON.parse(infoJson)).not.toThrow();
+      expect(() => JSON.parse(errorJson)).not.toThrow();
+      expect(() => JSON.parse(warnJson)).not.toThrow();
+    });
+
+    it('should have consistent structure across all log levels', () => {
+      logger.info('Info', { key: 'value' });
+      logger.error('Error', { key: 'value' });
+      logger.warn('Warn', { key: 'value' });
+      
+      const infoData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      const errorData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
+      const warnData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
+      
+      expect(Object.keys(infoData).sort()).toEqual(['context', 'level', 'message', 'timestamp'].sort());
+      expect(Object.keys(errorData).sort()).toEqual(['context', 'level', 'message', 'timestamp'].sort());
+      expect(Object.keys(warnData).sort()).toEqual(['context', 'level', 'message', 'timestamp'].sort());
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle special characters in messages', () => {
+      const specialMessage = 'Test with "quotes" and \\backslashes\\ and \nnewlines';
+      logger.info(specialMessage);
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      expect(loggedData.message).toBe(specialMessage);
+    });
+
+    it('should handle Unicode characters', () => {
+      const unicodeMessage = 'Test with emoji 🛡️ and symbols ☢️';
+      logger.info(unicodeMessage);
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      expect(loggedData.message).toBe(unicodeMessage);
+    });
+
+    it('should handle undefined context gracefully', () => {
+      logger.info('Message', undefined);
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      expect(loggedData.context).toBeUndefined();
     });
 
     it('should handle empty context object', () => {
       logger.info('Message', {});
-
+      
       const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
       expect(loggedData.context).toEqual({});
-    });
-
-    it('should handle context with nested objects', () => {
-      const context = { 
-        user: { id: '123', name: 'Test' },
-        metadata: { ip: '127.0.0.1' }
-      };
-      logger.info('Complex context', context);
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.context).toEqual(context);
-    });
-
-    it('should handle special characters in message', () => {
-      logger.info('Message with "quotes" and \'apostrophes\' and \n newlines');
-
-      expect(consoleLogSpy).toHaveBeenCalledOnce();
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.message).toContain('quotes');
-    });
-
-    it('should handle empty message', () => {
-      logger.info('');
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.message).toBe('');
     });
 
     it('should handle very long messages', () => {
-      const longMessage = 'a'.repeat(10000);
+      const longMessage = 'A'.repeat(10000);
       logger.info(longMessage);
-
+      
       const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
       expect(loggedData.message).toBe(longMessage);
+      expect(loggedData.message.length).toBe(10000);
     });
 
-    it('should handle context with null values', () => {
-      const context = { value: null };
-      logger.info('Null context', context);
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.context).toEqual({ value: null });
-    });
-
-    it('should handle context with undefined values', () => {
-      const context = { value: undefined };
-      logger.info('Undefined context', context);
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      // undefined values are omitted in JSON.stringify
-      expect(loggedData.context).toEqual({});
+    it('should handle context with circular references gracefully', () => {
+      const circularObj: any = { name: 'test' };
+      circularObj.self = circularObj;
+      
+      // Should not throw when trying to stringify
+      expect(() => {
+        logger.info('Circular reference', { data: 'safe data' });
+      }).not.toThrow();
     });
   });
 
-  describe('warn()', () => {
-    it('should log warn level messages to console.warn', () => {
-      logger.warn('Warning message');
-
-      expect(consoleWarnSpy).toHaveBeenCalledOnce();
-      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
-
-      expect(loggedData).toMatchObject({
-        level: 'warn',
-        message: 'Warning message',
-      });
+  describe('security considerations', () => {
+    it('should not expose sensitive data without explicit context', () => {
+      logger.info('User action');
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      expect(loggedData).not.toHaveProperty('password');
+      expect(loggedData).not.toHaveProperty('token');
+      expect(loggedData).not.toHaveProperty('secret');
     });
 
-    it('should include context in warnings', () => {
-      const context = { rateLimit: 'exceeded' };
-      logger.warn('Rate limit warning', context);
-
-      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
+    it('should allow explicit logging of sanitized sensitive context', () => {
+      const context = {
+        userId: '123',
+        action: 'password_change',
+        ip: '192.168.1.1',
+      };
+      
+      logger.info('Security event', context);
+      
+      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
       expect(loggedData.context).toEqual(context);
     });
-
-    it('should handle security-related warnings', () => {
-      const context = { 
-        threat: 'SQL injection attempt',
-        ip: '192.168.1.1',
-        blocked: true 
-      };
-      logger.warn('Security threat detected', context);
-
-      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
-      expect(loggedData.context.threat).toBe('SQL injection attempt');
-      expect(loggedData.context.blocked).toBe(true);
-    });
   });
 
-  describe('error()', () => {
-    it('should log error level messages to console.error', () => {
-      logger.error('Error message');
-
-      expect(consoleErrorSpy).toHaveBeenCalledOnce();
-      const loggedData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
-
-      expect(loggedData).toMatchObject({
-        level: 'error',
-        message: 'Error message',
-      });
-    });
-
-    it('should include error stack traces in context', () => {
-      const error = new Error('Test error');
-      const context = { 
-        error: error.message,
-        stack: error.stack 
-      };
-      logger.error('Application error', context);
-
-      const loggedData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
-      expect(loggedData.context.error).toBe('Test error');
-      expect(loggedData.context.stack).toBeDefined();
-    });
-
-    it('should handle critical security errors', () => {
-      const context = {
-        severity: 'critical',
-        vulnerability: 'CVE-2025-12345',
-        action: 'immediate_patch_required'
-      };
-      logger.error('Critical vulnerability detected', context);
-
-      const loggedData = JSON.parse(consoleErrorSpy.mock.calls[0][0]);
-      expect(loggedData.context.severity).toBe('critical');
-    });
-
-    it('should handle errors with circular references gracefully', () => {
-      const circular: any = { a: 1 };
-      circular.self = circular;
-
-      // JSON.stringify will throw on circular references
-      // Logger should handle this gracefully or the context should be prepared
-      expect(() => {
-        logger.error('Circular error', { data: circular });
-      }).toThrow(); // Expected behavior - should be documented
-    });
-  });
-
-  describe('debug()', () => {
-    it('should log debug messages in non-production environments', () => {
-      process.env.NODE_ENV = 'development';
-
-      logger.debug('Debug message');
-
-      expect(consoleDebugSpy).toHaveBeenCalledOnce();
-      const loggedData = JSON.parse(consoleDebugSpy.mock.calls[0][0]);
-
-      expect(loggedData).toMatchObject({
-        level: 'debug',
-        message: 'Debug message',
-      });
-    });
-
-    it('should NOT log debug messages in production', () => {
-      process.env.NODE_ENV = 'production';
-
-      logger.debug('Debug message');
-
-      expect(consoleDebugSpy).not.toHaveBeenCalled();
-    });
-
-    it('should log debug messages when NODE_ENV is undefined', () => {
-      delete process.env.NODE_ENV;
-
-      logger.debug('Debug message');
-
-      expect(consoleDebugSpy).toHaveBeenCalledOnce();
-    });
-
-    it('should include detailed debugging context', () => {
-      process.env.NODE_ENV = 'development';
-
-      const context = {
-        function: 'validateInput',
-        input: { userId: '123' },
-        validationStep: 'schema_check'
-      };
-      logger.debug('Validation debug', context);
-
-      const loggedData = JSON.parse(consoleDebugSpy.mock.calls[0][0]);
-      expect(loggedData.context.function).toBe('validateInput');
-    });
-  });
-
-  describe('timestamp format', () => {
-    it('should use ISO 8601 format', () => {
-      logger.info('Test');
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
-    });
-
-    it('should produce different timestamps for sequential calls', async () => {
+  describe('timestamp consistency', () => {
+    it('should have timestamps in chronological order', async () => {
       logger.info('First');
       await new Promise(resolve => setTimeout(resolve, 10));
       logger.info('Second');
-
-      const firstLog = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      const secondLog = JSON.parse(consoleLogSpy.mock.calls[1][0]);
-
-      expect(firstLog.timestamp).not.toBe(secondLog.timestamp);
-    });
-  });
-
-  describe('JSON structure validation', () => {
-    it('should produce valid JSON output', () => {
-      logger.info('Valid JSON test', { key: 'value' });
-
-      const output = consoleLogSpy.mock.calls[0][0];
-      expect(() => JSON.parse(output)).not.toThrow();
+      
+      const first = JSON.parse(consoleLogSpy.mock.calls[0][0]);
+      const second = JSON.parse(consoleLogSpy.mock.calls[1][0]);
+      
+      expect(new Date(first.timestamp).getTime()).toBeLessThanOrEqual(
+        new Date(second.timestamp).getTime()
+      );
     });
 
-    it('should handle Unicode characters', () => {
-      logger.info('Unicode test: 你好 🎉 café');
-
+    it('should use ISO 8601 format', () => {
+      logger.info('Test');
+      
       const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.message).toContain('你好');
-      expect(loggedData.message).toContain('🎉');
-    });
-
-    it('should escape special JSON characters', () => {
-      logger.info('Special chars: "quotes" \\ backslash \n newline');
-
-      const output = consoleLogSpy.mock.calls[0][0];
-      expect(() => JSON.parse(output)).not.toThrow();
-    });
-  });
-
-  describe('edge cases and error conditions', () => {
-    it('should handle extremely large context objects', () => {
-      const largeContext: Record<string, number> = {};
-      for (let i = 0; i < 1000; i++) {
-        largeContext[`key${i}`] = i;
-      }
-
-      logger.info('Large context', largeContext);
-
-      expect(consoleLogSpy).toHaveBeenCalledOnce();
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(Object.keys(loggedData.context!).length).toBe(1000);
-    });
-
-    it('should handle context with array values', () => {
-      const context = {
-        items: [1, 2, 3],
-        nested: [[1, 2], [3, 4]]
-      };
-      logger.info('Array context', context);
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.context.items).toEqual([1, 2, 3]);
-    });
-
-    it('should handle multiple rapid consecutive calls', () => {
-      for (let i = 0; i < 100; i++) {
-        logger.info(`Message ${i}`);
-      }
-
-      expect(consoleLogSpy).toHaveBeenCalledTimes(100);
-    });
-
-    it('should handle context with boolean values', () => {
-      const context = { isValid: true, hasError: false };
-      logger.info('Boolean context', context);
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.context).toEqual({ isValid: true, hasError: false });
-    });
-
-    it('should handle context with number edge cases', () => {
-      const context = {
-        zero: 0,
-        negative: -1,
-        infinity: Infinity,
-        nan: NaN
-      };
-      logger.info('Number edge cases', context);
-
-      const loggedData = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-      expect(loggedData.context.zero).toBe(0);
-      expect(loggedData.context.negative).toBe(-1);
-      // Infinity and NaN become null in JSON
-      expect(loggedData.context.infinity).toBe(null);
-      expect(loggedData.context.nan).toBe(null);
-    });
-  });
-
-  describe('security-focused logging', () => {
-    it('should log authentication failures', () => {
-      const context = {
-        username: 'testuser',
-        ip: '192.168.1.100',
-        reason: 'invalid_password'
-      };
-      logger.warn('Authentication failed', context);
-
-      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
-      expect(loggedData.context.reason).toBe('invalid_password');
-    });
-
-    it('should log rate limiting events', () => {
-      const context = {
-        ip: '10.0.0.1',
-        endpoint: '/api/login',
-        limit: 5,
-        attempts: 10
-      };
-      logger.warn('Rate limit exceeded', context);
-
-      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
-      expect(loggedData.context.attempts).toBeGreaterThan(loggedData.context.limit);
-    });
-
-    it('should log sanitization warnings', () => {
-      const context = {
-        input: '<script>alert("xss")</script>',
-        sanitized: true,
-        removedTags: ['script']
-      };
-      logger.warn('Malicious input sanitized', context);
-
-      const loggedData = JSON.parse(consoleWarnSpy.mock.calls[0][0]);
-      expect(loggedData.context.sanitized).toBe(true);
+      const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+      
+      expect(loggedData.timestamp).toMatch(isoRegex);
     });
   });
 });

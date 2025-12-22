@@ -1,5 +1,5 @@
-# Antigravity Starter Kit - Test Suite
+# Test Suite for Antigravity Starter Kit
 
-Comprehensive test suite for the Antigravity security framework, covering unit tests, integration tests, and adversarial security tests.
+This directory contains comprehensive unit and integration tests for the Antigravity security framework.
 
-## 📋 Test Structure
+## Structure

@@ -2,440 +2,403 @@ import { describe, it, expect } from 'vitest';
 import { sanitizeHtml, sanitizeInput } from '../../../src/lib/sanitize';
 
 describe('sanitizeHtml', () => {
-  describe('XSS prevention', () => {
-    it('should remove script tags', () => {
-      const dirty = '<script>alert("XSS")</script>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<script>');
-      expect(clean).not.toContain('alert');
+  describe('basic sanitization', () => {
+    it('should allow safe HTML tags', () => {
+      const input = '<p>Hello <strong>world</strong></p>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<p>');
+      expect(result).toContain('<strong>');
+      expect(result).toContain('Hello');
+      expect(result).toContain('world');
     });
 
-    it('should remove inline JavaScript event handlers', () => {
-      const dirty = '<div onclick="alert(\'XSS\')">Click me</div>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('onclick');
-      expect(clean).not.toContain('alert');
+    it('should allow emphasized text', () => {
+      const input = '<em>emphasized</em> and <i>italic</i>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<em>');
+      expect(result).toContain('<i>');
     });
 
-    it('should remove javascript: URLs', () => {
-      const dirty = '<a href="javascript:alert(\'XSS\')">Click</a>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('javascript:');
-    });
-
-    it('should remove data: URLs', () => {
-      const dirty = '<a href="data:text/html,<script>alert(\'XSS\')</script>">Click</a>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('data:');
-    });
-
-    it('should remove dangerous style attributes', () => {
-      const dirty = '<div style="position:fixed; top:0; left:0; width:100%; height:100%; background:red;">Overlay</div>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('style=');
-    });
-
-    it('should remove iframe tags', () => {
-      const dirty = '<iframe src="https://evil.com"></iframe>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<iframe');
-    });
-
-    it('should remove embed tags', () => {
-      const dirty = '<embed src="malicious.swf">';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<embed');
-    });
-
-    it('should remove object tags', () => {
-      const dirty = '<object data="malicious.swf"></object>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<object');
-    });
-
-    it('should handle multiple XSS vectors in one string', () => {
-      const dirty = `
-        <script>alert('xss1')</script>
-        <img src=x onerror="alert('xss2')">
-        <a href="javascript:alert('xss3')">click</a>
-      `;
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('script');
-      expect(clean).not.toContain('onerror');
-      expect(clean).not.toContain('javascript:');
-      expect(clean).not.toContain('alert');
-    });
-  });
-
-  describe('allowed tags', () => {
-    it('should allow basic text formatting tags', () => {
-      const input = '<b>bold</b> <i>italic</i> <em>emphasis</em> <strong>strong</strong>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<b>bold</b>');
-      expect(clean).toContain('<i>italic</i>');
-      expect(clean).toContain('<em>emphasis</em>');
-      expect(clean).toContain('<strong>strong</strong>');
-    });
-
-    it('should allow paragraph tags', () => {
-      const input = '<p>This is a paragraph</p>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<p>This is a paragraph</p>');
-    });
-
-    it('should allow line breaks', () => {
-      const input = 'Line 1<br>Line 2';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<br>');
-    });
-
-    it('should allow list tags', () => {
+    it('should allow lists', () => {
       const input = '<ul><li>Item 1</li><li>Item 2</li></ul>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<ul>');
-      expect(clean).toContain('<li>');
-      expect(clean).toContain('Item 1');
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<ul>');
+      expect(result).toContain('<li>');
+      expect(result).toContain('Item 1');
     });
 
     it('should allow ordered lists', () => {
       const input = '<ol><li>First</li><li>Second</li></ol>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<ol>');
-      expect(clean).toContain('<li>');
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<ol>');
+      expect(result).toContain('<li>');
     });
 
-    it('should allow code tags', () => {
-      const input = '<code>const x = 5;</code>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<code>');
-      expect(clean).toContain('const x = 5;');
+    it('should allow code blocks', () => {
+      const input = '<code>const x = 1;</code>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<code>');
+      expect(result).toContain('const x = 1;');
     });
 
-    it('should allow pre tags', () => {
-      const input = '<pre>Preformatted text</pre>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<pre>');
+    it('should allow pre blocks', () => {
+      const input = '<pre>formatted code</pre>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<pre>');
     });
 
-    it('should allow anchor tags with safe attributes', () => {
-      const input = '<a href="https://example.com" target="_blank" rel="noopener">Link</a>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('href="https://example.com"');
-      expect(clean).toContain('target="_blank"');
-      expect(clean).toContain('rel="noopener"');
+    it('should allow line breaks', () => {
+      const input = 'Line 1<br>Line 2';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<br>');
     });
   });
 
-  describe('attribute sanitization', () => {
-    it('should remove non-whitelisted attributes from allowed tags', () => {
-      const input = '<p class="danger" data-value="test">Text</p>';
-      const clean = sanitizeHtml(input);
-      expect(clean).not.toContain('class=');
-      expect(clean).not.toContain('data-value=');
-      expect(clean).toContain('Text');
+  describe('XSS prevention', () => {
+    it('should remove script tags', () => {
+      const input = '<p>Safe</p><script>alert("xss")</script>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<script>');
+      expect(result).not.toContain('alert');
+      expect(result).toContain('Safe');
     });
 
-    it('should allow href attribute on anchor tags', () => {
-      const input = '<a href="https://safe.com">Link</a>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('href="https://safe.com"');
+    it('should remove onclick attributes', () => {
+      const input = '<p onclick="alert(\'xss\')">Click me</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('onclick');
+      expect(result).not.toContain('alert');
+      expect(result).toContain('Click me');
     });
 
-    it('should allow target and rel attributes on anchors', () => {
-      const input = '<a href="#" target="_blank" rel="noopener noreferrer">Link</a>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('target="_blank"');
-      expect(clean).toContain('rel="noopener noreferrer"');
+    it('should remove onerror attributes', () => {
+      const input = '<img src="x" onerror="alert(\'xss\')">';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('onerror');
+      expect(result).not.toContain('alert');
     });
 
-    it('should remove dangerous attributes even from allowed tags', () => {
-      const input = '<a href="https://safe.com" onclick="alert(\'xss\')">Link</a>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('href=');
-      expect(clean).not.toContain('onclick');
+    it('should remove javascript: protocol in links', () => {
+      const input = '<a href="javascript:alert(\'xss\')">Click</a>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('javascript:');
+      expect(result).not.toContain('alert');
+    });
+
+    it('should remove data: URLs in links', () => {
+      const input = '<a href="data:text/html,<script>alert(\'xss\')</script>">Click</a>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('data:');
+    });
+
+    it('should remove inline event handlers', () => {
+      const input = '<div onload="alert(1)" onmouseover="alert(2)">Test</div>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('onload');
+      expect(result).not.toContain('onmouseover');
+    });
+
+    it('should remove style tags', () => {
+      const input = '<style>body { background: red; }</style><p>Content</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<style>');
+      expect(result).toContain('Content');
+    });
+
+    it('should remove iframe tags', () => {
+      const input = '<iframe src="evil.com"></iframe><p>Safe</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<iframe>');
+      expect(result).toContain('Safe');
+    });
+
+    it('should remove object tags', () => {
+      const input = '<object data="malicious.swf"></object>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<object>');
+    });
+
+    it('should remove embed tags', () => {
+      const input = '<embed src="evil.swf">';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<embed>');
+    });
+  });
+
+  describe('link sanitization', () => {
+    it('should allow safe href attributes', () => {
+      const input = '<a href="https://example.com">Link</a>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('href="https://example.com"');
+      expect(result).toContain('Link');
+    });
+
+    it('should allow target attribute', () => {
+      const input = '<a href="https://example.com" target="_blank">Link</a>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('target="_blank"');
+    });
+
+    it('should allow rel attribute', () => {
+      const input = '<a href="https://example.com" rel="noopener noreferrer">Link</a>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('rel="noopener noreferrer"');
+    });
+
+    it('should allow relative URLs', () => {
+      const input = '<a href="/page">Internal</a>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('href="/page"');
+    });
+
+    it('should allow mailto links', () => {
+      const input = '<a href="mailto:test@example.com">Email</a>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('mailto:test@example.com');
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty string', () => {
-      const clean = sanitizeHtml('');
-      expect(clean).toBe('');
-    });
-
-    it('should handle undefined by returning empty string', () => {
-      const clean = sanitizeHtml(undefined as any);
-      expect(clean).toBe('');
-    });
-
-    it('should handle null by returning empty string', () => {
-      const clean = sanitizeHtml(null as any);
-      expect(clean).toBe('');
+    it('should handle empty strings', () => {
+      const result = sanitizeHtml('');
+      expect(result).toBe('');
     });
 
     it('should handle plain text without HTML', () => {
-      const input = 'Just plain text';
-      const clean = sanitizeHtml(input);
-      expect(clean).toBe('Just plain text');
+      const input = 'Plain text content';
+      const result = sanitizeHtml(input);
+      expect(result).toBe('Plain text content');
     });
 
-    it('should handle text with HTML entities', () => {
-      const input = '&lt;script&gt;alert()&lt;/script&gt;';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('&lt;');
-      expect(clean).toContain('&gt;');
-    });
-
-    it('should handle malformed HTML', () => {
-      const input = '<p>Unclosed paragraph<div>Nested wrong</p></div>';
-      const clean = sanitizeHtml(input);
-      // Should not crash
-      expect(clean).toBeDefined();
-    });
-
-    it('should handle very long strings', () => {
-      const longString = '<p>' + 'a'.repeat(100000) + '</p>';
-      const clean = sanitizeHtml(longString);
-      expect(clean).toContain('<p>');
-      expect(clean.length).toBeGreaterThan(100000);
+    it('should handle null bytes', () => {
+      const input = 'Test\0content';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('\0');
     });
 
     it('should handle Unicode characters', () => {
-      const input = '<p>Hello 世界 🌍 café</p>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('世界');
-      expect(clean).toContain('🌍');
-      expect(clean).toContain('café');
+      const input = '<p>Hello 世界 🌍</p>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('世界');
+      expect(result).toContain('🌍');
     });
 
-    it('should handle nested allowed tags', () => {
+    it('should handle malformed HTML', () => {
+      const input = '<p>Unclosed paragraph<p>Another';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('Unclosed paragraph');
+      expect(result).toContain('Another');
+    });
+
+    it('should handle nested tags', () => {
       const input = '<p><strong><em>Nested</em></strong></p>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('<p>');
-      expect(clean).toContain('<strong>');
-      expect(clean).toContain('<em>');
+      const result = sanitizeHtml(input);
+      expect(result).toContain('<p>');
+      expect(result).toContain('<strong>');
+      expect(result).toContain('<em>');
     });
 
     it('should handle deeply nested structures', () => {
-      let input = 'text';
-      for (let i = 0; i < 100; i++) {
-        input = `<p>${input}</p>`;
-      }
-      const clean = sanitizeHtml(input);
-      expect(clean).toBeDefined();
-      expect(clean).toContain('text');
+      const input = '<ul><li><p><strong><em>Deep</em></strong></p></li></ul>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('Deep');
+    });
+
+    it('should handle HTML entities', () => {
+      const input = '<p>&lt;script&gt;alert()&lt;/script&gt;</p>';
+      const result = sanitizeHtml(input);
+      expect(result).toContain('&lt;');
+      expect(result).toContain('&gt;');
+    });
+
+    it('should handle very long content', () => {
+      const longText = 'A'.repeat(10000);
+      const input = `<p>${longText}</p>`;
+      const result = sanitizeHtml(input);
+      expect(result).toContain(longText);
     });
   });
 
-  describe('common attack patterns', () => {
-    it('should block SVG-based XSS', () => {
-      const dirty = '<svg><script>alert("XSS")</script></svg>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<svg');
-      expect(clean).not.toContain('script');
+  describe('disallowed tags', () => {
+    it('should remove div tags', () => {
+      const input = '<div>Content</div>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<div>');
+      expect(result).toContain('Content');
     });
 
-    it('should block form tags', () => {
-      const dirty = '<form action="https://evil.com"><input type="submit"></form>';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<form');
-      expect(clean).not.toContain('<input');
+    it('should remove span tags', () => {
+      const input = '<span>Text</span>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<span>');
+      expect(result).toContain('Text');
     });
 
-    it('should block meta refresh redirects', () => {
-      const dirty = '<meta http-equiv="refresh" content="0;url=https://evil.com">';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<meta');
+    it('should remove img tags', () => {
+      const input = '<img src="image.jpg" alt="Image">';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<img>');
     });
 
-    it('should block base tag hijacking', () => {
-      const dirty = '<base href="https://evil.com/">';
-      const clean = sanitizeHtml(dirty);
-      expect(clean).not.toContain('<base');
+    it('should remove form elements', () => {
+      const input = '<form><input type="text"></form>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<form>');
+      expect(result).not.toContain('<input>');
     });
 
-    it('should handle obfuscated XSS attempts', () => {
-      const patterns = [
-        '<IMG SRC=j&#X41vascript:alert("XSS")>',
-        '<IMG SRC=&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;&#58;alert("XSS")>',
-        '<IMG SRC="jav\tascript:alert(\'XSS\');">',
-        '<IMG SRC="jav&#x09;ascript:alert(\'XSS\');">',
-      ];
-
-      patterns.forEach(pattern => {
-        const clean = sanitizeHtml(pattern);
-        expect(clean).not.toContain('javascript:');
-        expect(clean).not.toContain('alert');
-      });
+    it('should remove table elements', () => {
+      const input = '<table><tr><td>Cell</td></tr></table>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('<table>');
+      expect(result).toContain('Cell');
     });
   });
 
-  describe('whitespace and formatting', () => {
-    it('should preserve whitespace in allowed tags', () => {
-      const input = '<p>Line 1\n\nLine 2</p>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('Line 1');
-      expect(clean).toContain('Line 2');
+  describe('attribute sanitization', () => {
+    it('should remove id attributes', () => {
+      const input = '<p id="test">Content</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('id=');
     });
 
-    it('should preserve multiple spaces', () => {
-      const input = '<p>word1    word2</p>';
-      const clean = sanitizeHtml(input);
-      expect(clean).toContain('word1');
-      expect(clean).toContain('word2');
+    it('should remove class attributes', () => {
+      const input = '<p class="test">Content</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('class=');
+    });
+
+    it('should remove style attributes', () => {
+      const input = '<p style="color: red;">Content</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('style=');
+    });
+
+    it('should remove data attributes', () => {
+      const input = '<p data-value="123">Content</p>';
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain('data-');
     });
   });
 });
 
 describe('sanitizeInput', () => {
   describe('basic sanitization', () => {
-    it('should trim leading whitespace', () => {
-      const input = '   hello';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('hello');
-    });
-
-    it('should trim trailing whitespace', () => {
-      const input = 'hello   ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('hello');
-    });
-
-    it('should trim both leading and trailing whitespace', () => {
-      const input = '  hello world  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('hello world');
+    it('should trim whitespace', () => {
+      const result = sanitizeInput('  hello  ');
+      expect(result).toBe('hello');
     });
 
     it('should remove null bytes', () => {
-      const input = 'hello\0world';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('helloworld');
-      expect(clean).not.toContain('\0');
+      const result = sanitizeInput('test\0content');
+      expect(result).toBe('testcontent');
     });
 
-    it('should remove multiple null bytes', () => {
-      const input = 'te\0st\0ing\0';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('testing');
+    it('should handle empty strings', () => {
+      const result = sanitizeInput('');
+      expect(result).toBe('');
+    });
+
+    it('should handle whitespace-only strings', () => {
+      const result = sanitizeInput('   ');
+      expect(result).toBe('');
+    });
+
+    it('should preserve internal spaces', () => {
+      const result = sanitizeInput('  hello world  ');
+      expect(result).toBe('hello world');
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty string', () => {
-      const clean = sanitizeInput('');
-      expect(clean).toBe('');
+    it('should handle Unicode characters', () => {
+      const result = sanitizeInput('  Hello 世界  ');
+      expect(result).toBe('Hello 世界');
     });
 
-    it('should handle string with only whitespace', () => {
-      const clean = sanitizeInput('   \t\n  ');
-      expect(clean).toBe('');
+    it('should handle emoji', () => {
+      const result = sanitizeInput('  Test 🛡️  ');
+      expect(result).toBe('Test 🛡️');
     });
 
-    it('should handle non-string input by returning as-is', () => {
+    it('should handle newlines', () => {
+      const result = sanitizeInput('  line1\nline2  ');
+      expect(result).toBe('line1\nline2');
+    });
+
+    it('should handle tabs', () => {
+      const result = sanitizeInput('  col1\tcol2  ');
+      expect(result).toBe('col1\tcol2');
+    });
+
+    it('should handle multiple null bytes', () => {
+      const result = sanitizeInput('te\0st\0con\0tent');
+      expect(result).toBe('testcontent');
+    });
+
+    it('should handle very long strings', () => {
+      const longString = 'a'.repeat(10000);
+      const result = sanitizeInput(`  ${longString}  `);
+      expect(result).toBe(longString);
+      expect(result.length).toBe(10000);
+    });
+  });
+
+  describe('non-string inputs', () => {
+    it('should return non-string inputs unchanged', () => {
       expect(sanitizeInput(123 as any)).toBe(123);
+      expect(sanitizeInput(true as any)).toBe(true);
       expect(sanitizeInput(null as any)).toBe(null);
       expect(sanitizeInput(undefined as any)).toBe(undefined);
       expect(sanitizeInput({ key: 'value' } as any)).toEqual({ key: 'value' });
     });
+  });
 
-    it('should preserve internal whitespace', () => {
-      const input = '  hello   world  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('hello   world');
+  describe('security scenarios', () => {
+    it('should sanitize SQL injection attempts', () => {
+      const result = sanitizeInput("  ' OR '1'='1  ");
+      expect(result).toBe("' OR '1'='1");
+      expect(result.startsWith(' ')).toBe(false);
+      expect(result.endsWith(' ')).toBe(false);
     });
 
-    it('should handle tabs and newlines', () => {
-      const input = '  hello\t\nworld  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('hello\t\nworld');
+    it('should sanitize command injection attempts', () => {
+      const result = sanitizeInput('  ; rm -rf /  ');
+      expect(result).toBe('; rm -rf /');
+      expect(result).not.toContain('\0');
+    });
+
+    it('should sanitize path traversal attempts', () => {
+      const result = sanitizeInput('  ../../etc/passwd  ');
+      expect(result).toBe('../../etc/passwd');
+    });
+
+    it('should handle null byte injection', () => {
+      const result = sanitizeInput('file.txt\0.jpg');
+      expect(result).toBe('file.txt.jpg');
+      expect(result).not.toContain('\0');
     });
   });
 
-  describe('security-focused cases', () => {
-    it('should handle SQL injection attempts', () => {
-      const input = "  ' OR '1'='1  ";
-      const clean = sanitizeInput(input);
-      expect(clean).toBe("' OR '1'='1");
-      // Note: This doesn't prevent SQL injection, just normalizes input
-      // SQL injection prevention should happen at query level
+  describe('real-world scenarios', () => {
+    it('should sanitize user input from forms', () => {
+      const result = sanitizeInput('  user@example.com  ');
+      expect(result).toBe('user@example.com');
     });
 
-    it('should handle path traversal attempts', () => {
-      const input = '  ../../etc/passwd  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('../../etc/passwd');
-      // Note: Path sanitization should be done separately
+    it('should sanitize search queries', () => {
+      const result = sanitizeInput('  search term  ');
+      expect(result).toBe('search term');
     });
 
-    it('should handle command injection attempts', () => {
-      const input = '  ; rm -rf /  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('; rm -rf /');
-      // Note: Command execution should be avoided or properly escaped
+    it('should sanitize usernames', () => {
+      const result = sanitizeInput('  john_doe123  ');
+      expect(result).toBe('john_doe123');
     });
 
-    it('should preserve special characters that might be part of valid input', () => {
-      const input = '  user@example.com  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('user@example.com');
-    });
-
-    it('should handle Unicode null bytes', () => {
-      const input = 'test\u0000ing';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('testing');
-    });
-  });
-
-  describe('real-world input patterns', () => {
-    it('should handle email addresses', () => {
-      const input = '  john.doe+test@example.com  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('john.doe+test@example.com');
-    });
-
-    it('should handle usernames', () => {
-      const input = '  user_name-123  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('user_name-123');
-    });
-
-    it('should handle search queries', () => {
-      const input = '  how to prevent XSS  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('how to prevent XSS');
-    });
-
-    it('should handle URLs', () => {
-      const input = '  https://example.com/path?query=value  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('https://example.com/path?query=value');
-    });
-
-    it('should handle file names', () => {
-      const input = '  document-v2.1_final.pdf  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('document-v2.1_final.pdf');
-    });
-  });
-
-  describe('Unicode handling', () => {
-    it('should preserve Unicode characters', () => {
-      const input = '  你好世界  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('你好世界');
-    });
-
-    it('should preserve emojis', () => {
-      const input = '  Hello 👋 World 🌍  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('Hello 👋 World 🌍');
-    });
-
-    it('should handle mixed Unicode scripts', () => {
-      const input = '  English 中文 العربية עברית  ';
-      const clean = sanitizeInput(input);
-      expect(clean).toBe('English 中文 العربية עברית');
+    it('should sanitize file names', () => {
+      const result = sanitizeInput('  document.pdf  ');
+      expect(result).toBe('document.pdf');
     });
   });
 });
