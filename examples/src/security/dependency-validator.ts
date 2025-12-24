@@ -20,6 +20,12 @@ interface AuditResult {
   };
 }
 
+/**
+ * Performs an npm security audit and enforces policy by failing the process if high or critical vulnerabilities are present.
+ *
+ * Checks for a local package.json, runs `npm audit --json`, parses the audit metadata, and logs a vulnerability summary.
+ * If any high or critical vulnerabilities are found, or if the audit cannot be completed, the function logs an error and exits the process with code 1.
+ */
 function validateDependencies() {
   console.log('🔍 Vetting dependencies...');
 

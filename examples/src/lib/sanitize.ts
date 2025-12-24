@@ -5,6 +5,12 @@ import { JSDOM } from 'jsdom';
 const window = new JSDOM('').window;
 const purify = DOMPurify(window as any);
 
+/**
+ * Produce a sanitized HTML string containing only a restricted set of safe tags and attributes.
+ *
+ * @param dirty - The potentially unsafe HTML input to sanitize.
+ * @returns The sanitized HTML preserving only allowed tags and attributes (allowed tags: `b`, `i`, `em`, `strong`, `a`, `p`, `br`, `ul`, `ol`, `li`, `code`, `pre`; allowed attributes: `href`, `target`, `rel`). Returns an empty string if `dirty` is falsy.
+ */
 export function sanitizeHtml(dirty: string): string {
   if (!dirty) return '';
   
@@ -16,6 +22,14 @@ export function sanitizeHtml(dirty: string): string {
   });
 }
 
+/**
+ * Performs minimal sanitization of a text input.
+ *
+ * Trims surrounding whitespace and removes all null-byte characters from the string.
+ *
+ * @param input - The value to sanitize; if not a string, it is returned unchanged.
+ * @returns The sanitized string with leading/trailing whitespace removed and `\0` characters stripped; non-string inputs are returned as provided.
+ */
 export function sanitizeInput(input: string): string {
     if (typeof input !== 'string') return input;
     // Basic sanitization for simple inputs (trim, remove null bytes)

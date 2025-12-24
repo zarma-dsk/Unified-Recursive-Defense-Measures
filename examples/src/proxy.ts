@@ -5,7 +5,12 @@ import type { NextRequest } from 'next/server';
 // but for edge handling, the file location convention hasn't fully forced a rename to 'proxy.ts' 
 // for the *middleware* functionality universally in all docs yet, 
 // though the prompt mentioned proxy.ts replacing middleware.ts.
-// We will export the 'proxy' function as requested by the migration guide pattern analysis.
+/**
+ * Injects a security header and continues the Next.js response pipeline for an incoming request.
+ *
+ * @param request - The incoming Next.js request to handle
+ * @returns A NextResponse that continues processing with the `X-XSS-Protection: 1; mode=block` header set
+ */
 
 export function proxy(request: NextRequest) {
   // Accessing request to prevent unused variable error in strict mode
