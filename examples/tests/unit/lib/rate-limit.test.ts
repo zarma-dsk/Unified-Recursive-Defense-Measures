@@ -4,7 +4,7 @@ import { limiter } from '../../../src/lib/rate-limit';
 describe('RateLimiter', () => {
   beforeEach(() => {
     // Reset the limiter state between tests by clearing its internal map
-    // Note: This is a workaround since we can't easily access private properties
+    limiter.reset();
     vi.useFakeTimers();
   });
 

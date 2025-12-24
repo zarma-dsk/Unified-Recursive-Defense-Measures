@@ -4,6 +4,8 @@
  * you should use Redis (e.g., Upstash) to share state.
  */
 
+import { LRUCache } from './lru-cache';
+
 interface RateLimitConfig {
   interval: number; // in milliseconds
   uniqueTokenPerInterval: number; // max requests per interval
@@ -12,12 +14,12 @@ interface RateLimitConfig {
 const LRU_CACHE_SIZE = 500;
 
 class RateLimiter {
-  private tokens: Map<string, number[]>;
+  private tokens: LRUCache<string, number[]>;
   private config: RateLimitConfig;
 
   constructor(config: RateLimitConfig) {
     this.config = config;
-    this.tokens = new Map();
+    this.tokens = new LRUCache(LRU_CACHE_SIZE);
   }
 
   /**
@@ -28,6 +30,7 @@ class RateLimiter {
     const now = Date.now();
     const windowStart = now - this.config.interval;
 
+    // get() updates recency
     let timestamps = this.tokens.get(token);
     
     if (!timestamps) {
@@ -51,24 +54,18 @@ class RateLimiter {
 
     timestamps.push(now);
 
-    // LRU Optimization: Delete and re-set to move this key to the end of the Map (most recently used)
-    // This ensures that the cleanup logic below actually removes the *least* recently used items.
-    this.tokens.delete(token);
+    // set() updates recency and handles eviction if full
     this.tokens.set(token, timestamps);
 
-    // Basic cleanup to prevent memory leaks (LRU-like behavior would be better)
-    if (this.tokens.size > LRU_CACHE_SIZE) {
-        // Clear old entries naively if too big
-        const deleteCount =  this.tokens.size - LRU_CACHE_SIZE + 100;
-        let deleted = 0;
-        for (const key of this.tokens.keys()) {
-            if (deleted >= deleteCount) break;
-            this.tokens.delete(key);
-            deleted++;
-        }
-    }
-
     return true;
+  }
+
+  /**
+   * Reset the rate limiter state.
+   * Useful for testing.
+   */
+  reset(): void {
+    this.tokens.clear();
   }
 }
 
