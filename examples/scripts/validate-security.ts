@@ -50,3 +50,4 @@ function run() {
 }
 
 run();
+run();

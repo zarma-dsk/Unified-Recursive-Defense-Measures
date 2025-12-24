@@ -1,13 +1,13 @@
-# Unified Recursive Defense Measures
+# Unified Recursive Security
 
-Antigravity Starter Kit — a research-driven, production-oriented security protocol and starter scaffold for Next.js applications (Antigravity 5.1.1). This repository packages the core defensive primitives, checks, and guidance used to harden AI-assisted codebases against hallucinations, supply-chain risks, and other AI-specific vulnerabilities.
+**Unified Recursive Security** (v5.1.1) is a research-driven, production-oriented security protocol and starter scaffold for Next.js applications. This repository packages the core defensive primitives, checks, and guidance used to harden AI-assisted codebases against hallucinations, supply-chain risks, and other AI-specific vulnerabilities.
 
 ## Quick overview
 - Purpose: Provide an opinionated, layered security scaffold for building web applications with AI-assisted development while minimizing synthetic/hallucination risks.
 - Audience: app authors, security engineers, reviewers, and maintainers who need a concise, research-backed checklist and implementation guidance.
 ## 📚 Documentation Ecosystem
 
-This repository contains a comprehensive documentation suite for the Unified Recursive Defense Measures, split into two main layers: the v5.0.0 Foundation and the v5.1.1 Research-Hardened Enhancement.
+This repository contains a comprehensive documentation suite for the Unified Recursive Security, split into two main layers: the v5.0.0 Foundation and the v5.1.1 Research-Hardened Enhancement.
 
 ### **Foundation Layer (v5.0.0 Base)**
 The core architectural principles and implementation patterns.
@@ -63,10 +63,12 @@ See docs/unified-recursive-defense-measures-v511-implementation-companion.md for
 .
 ├── .github/workflows/   # CI / validation pipeline
 ├── docs/                # Protocol docs, matrices, and research references
-├── scripts/             # Security & validation automation
-├── src/                 # Implementation (actions, libs, domain, data)
+├── examples/
+│   ├── scripts/         # Security & validation automation
+│   ├── src/             # Implementation (actions, libs, domain, data)
+│   └── tests/           # [Test files](examples/tests/) (Unit, Integration, Adversarial)
 ├── package.json         # Scripts & dependency manifest
-└── vitest.config.ts     # Test configuration
+└── examples/vitest.config.ts # Test configuration
 
 ## Included scripts (examples)
 - npm run format — Prettier
@@ -121,7 +123,7 @@ This protocol synthesizes findings from 8+ academic and industry sources (Radwar
 - Keep diffs small: prefer targeted, reviewable commits (<100 LOC).
 - Follow the protocol’s iteration and threat-modeling rules (see docs/).
 
-Look for an existing CONTRIBUTING.md in the repo; follow any repository-specific process it prescribes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines and the repository-specific process.
 
 ## Security reporting
 Report vulnerabilities following the guidance in SECURITY.md. Use the disclosure/contact details provided there.

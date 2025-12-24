@@ -125,6 +125,7 @@ describe('Adversarial Security Tests', () => {
     });
 
     it('should block brute force password attacks', () => {
+    it('should block brute force password attacks', async () => {
       const attackerIp = '192.168.1.100';
       const limit = 5;
       let blockedCount = 0;
@@ -132,6 +133,7 @@ describe('Adversarial Security Tests', () => {
       // Simulate 100 rapid login attempts
       for (let i = 0; i < 100; i++) {
         if (!limiter.check(limit, attackerIp)) {
+        if (!(await limiter.check(limit, attackerIp))) {
           blockedCount++;
         }
       }
@@ -141,6 +143,7 @@ describe('Adversarial Security Tests', () => {
     });
 
     it('should protect against distributed brute force', () => {
+    it('should protect against distributed brute force', async () => {
       const limit = 5;
       const attackersBlocked = [];
 
@@ -151,6 +154,7 @@ describe('Adversarial Security Tests', () => {
 
         for (let attempt = 0; attempt < 10; attempt++) {
           if (!limiter.check(limit, ip)) {
+          if (!(await limiter.check(limit, ip))) {
             blocked = true;
             break;
           }
@@ -166,6 +170,7 @@ describe('Adversarial Security Tests', () => {
     });
 
     it('should prevent credential stuffing attacks', () => {
+    it('should prevent credential stuffing attacks', async () => {
       const limit = 3;
       const credentials = [
         'user1:password1',
@@ -180,11 +185,14 @@ describe('Adversarial Security Tests', () => {
 
       credentials.forEach(cred => {
         if (limiter.check(limit, 'attacker_ip')) {
+      for (const cred of credentials) {
+        if (await limiter.check(limit, 'attacker_ip')) {
           successfulAttempts++;
         } else {
           blockedAttempts++;
         }
       });
+      }
 
       expect(successfulAttempts).toBe(3);
       expect(blockedAttempts).toBe(2);
@@ -366,6 +374,7 @@ describe('Adversarial Security Tests', () => {
       // Simulate concurrent requests
       const promises = Array.from({ length: 20 }, () =>
         Promise.resolve(limiter.check(limit, token))
+        limiter.check(limit, token)
       );
 
       const results = await Promise.all(promises);

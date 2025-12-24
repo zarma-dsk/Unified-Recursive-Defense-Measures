@@ -1,0 +1,8 @@
+# Default owners for everything
+*       @zarma-dsk
+
+# Unified Recursive Defense Measures Docs
+docs/   @zarma-dsk
+
+# Security Config
+.semgrep.yml @zarma-dsk

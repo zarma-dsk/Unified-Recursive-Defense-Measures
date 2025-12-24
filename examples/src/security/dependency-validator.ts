@@ -68,3 +68,4 @@ function validateDependencies() {
 }
 
 validateDependencies();
+validateDependencies();
