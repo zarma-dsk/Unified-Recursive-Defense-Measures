@@ -4,14 +4,16 @@
  */
 
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const REQUIRED_FILES = [
-  'src/lib/sanitize.ts',
-  'src/lib/rate-limit.ts',
-  'src/lib/logger.ts',
-  '.github/workflows/ci.yml'
+  'examples/src/lib/sanitize.ts',
+  'examples/src/lib/rate-limit.ts',
+  'examples/src/lib/logger.ts',
+  'examples/ci.yml'
 ];
 
+export function checkRequiredFiles() {
 /**
  * Verifies that all required security files exist.
  *
@@ -37,6 +39,7 @@ function checkRequiredFiles() {
   }
 }
 
+export function run() {
 /**
  * Starts the Antigravity Security Validation flow and logs progress.
  *
@@ -49,5 +52,10 @@ function run() {
   console.log('✅ All security checks passed.');
 }
 
+// Execute if run directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run();
+}
+run();
 run();
 run();

@@ -3,9 +3,13 @@ import { limiter } from '../../../src/lib/rate-limit';
 
 describe('RateLimiter', () => {
   beforeEach(() => {
+    // Reset the limiter state between tests
     // Reset the limiter state between tests by clearing its internal map
+    // Note: This is a workaround since we can't easily access private properties
+    vi.useFakeTimers();
     limiter.reset();
     vi.useFakeTimers();
+    (limiter as any).tokens.clear();
   });
 
   afterEach(() => {
@@ -14,6 +18,10 @@ describe('RateLimiter', () => {
   });
 
   describe('check - basic functionality', () => {
+    it('should allow requests under the limit', () => {
+      const result1 = limiter.check(5, 'user-1');
+      const result2 = limiter.check(5, 'user-1');
+      const result3 = limiter.check(5, 'user-1');
     it('should allow requests under the limit', async () => {
       const result1 = await limiter.check(5, 'user-1');
       const result2 = await limiter.check(5, 'user-1');
@@ -24,6 +32,35 @@ describe('RateLimiter', () => {
       expect(result3).toBe(true);
     });
 
+    it('should reject requests at the limit', async () => {
+      // Allow up to limit
+      for (let i = 0; i < 5; i++) {
+        expect(await limiter.check(5, 'user-2')).toBe(true);
+      }
+      
+      // Reject at limit
+      expect(await limiter.check(5, 'user-2')).toBe(false);
+    });
+
+    it('should reject requests over the limit', async () => {
+      for (let i = 0; i < 5; i++) {
+        await limiter.check(5, 'user-3');
+      }
+      
+      expect(await limiter.check(5, 'user-3')).toBe(false);
+      expect(await limiter.check(5, 'user-3')).toBe(false);
+      expect(await limiter.check(5, 'user-3')).toBe(false);
+    });
+
+    it('should handle limit of 1 correctly', async () => {
+      expect(await limiter.check(1, 'user-4')).toBe(true);
+      expect(await limiter.check(1, 'user-4')).toBe(false);
+      expect(await limiter.check(1, 'user-4')).toBe(false);
+    });
+
+    it('should handle limit of 0 correctly', () => {
+      expect(limiter.check(0, 'user-5')).toBe(false);
+      expect(limiter.check(0, 'user-5')).toBe(false);
     it('should reject requests at the limit', async () => {
       // Allow up to limit
       for (let i = 0; i < 5; i++) {
@@ -71,11 +108,45 @@ describe('RateLimiter', () => {
       expect(await limiter.check(5, 'user-b')).toBe(false);
     });
 
+    it('should handle IP-based tokens', () => {
+    it('should isolate different tokens', async () => {
+      // User 1 uses their limit
+      for (let i = 0; i < 5; i++) {
+        expect(await limiter.check(5, 'user-a')).toBe(true);
+      }
+      expect(await limiter.check(5, 'user-a')).toBe(false);
+      
+      // User 2 should have their own limit
+      for (let i = 0; i < 5; i++) {
+        expect(await limiter.check(5, 'user-b')).toBe(true);
+      }
+      expect(await limiter.check(5, 'user-b')).toBe(false);
+    });
+
     it('should handle IP-based tokens', async () => {
       const ip1 = '192.168.1.1';
       const ip2 = '192.168.1.2';
       
       for (let i = 0; i < 5; i++) {
+        expect(await limiter.check(5, ip1)).toBe(true);
+      }
+      expect(await limiter.check(5, ip1)).toBe(false);
+      
+      // Different IP should have separate limit
+      expect(await limiter.check(5, ip2)).toBe(true);
+    });
+
+    it('should handle user ID tokens', async () => {
+      const userId1 = 'user-12345';
+      const userId2 = 'user-67890';
+      
+      expect(await limiter.check(3, userId1)).toBe(true);
+      expect(await limiter.check(3, userId1)).toBe(true);
+      expect(await limiter.check(3, userId1)).toBe(true);
+      expect(await limiter.check(3, userId1)).toBe(false);
+      
+      expect(limiter.check(3, userId2)).toBe(true);
+      expect(limiter.check(3, userId2)).toBe(true);
         expect(await limiter.check(5, ip1)).toBe(true);
       }
       expect(await limiter.check(5, ip1)).toBe(false);
@@ -99,12 +170,16 @@ describe('RateLimiter', () => {
   });
 
   describe('check - time window behavior', () => {
+    it('should reset after the time window expires', () => {
     it('should reset after the time window expires', async () => {
       const now = Date.now();
       vi.setSystemTime(now);
       
       // Use up limit
       for (let i = 0; i < 3; i++) {
+        expect(await limiter.check(3, 'user-time-1')).toBe(true);
+      }
+      expect(limiter.check(3, 'user-time-1')).toBe(false);
         expect(await limiter.check(3, 'user-time-1')).toBe(true);
       }
       expect(await limiter.check(3, 'user-time-1')).toBe(false);
@@ -116,11 +191,17 @@ describe('RateLimiter', () => {
       expect(await limiter.check(3, 'user-time-1')).toBe(true);
     });
 
+    it('should use sliding window (not fixed window)', () => {
+      expect(await limiter.check(3, 'user-time-1')).toBe(true);
+    });
+
     it('should use sliding window (not fixed window)', async () => {
       const now = Date.now();
       vi.setSystemTime(now);
       
       // Make 2 requests
+      expect(limiter.check(3, 'user-sliding')).toBe(true);
+      expect(limiter.check(3, 'user-sliding')).toBe(true);
       expect(await limiter.check(3, 'user-sliding')).toBe(true);
       expect(await limiter.check(3, 'user-sliding')).toBe(true);
       
@@ -128,6 +209,8 @@ describe('RateLimiter', () => {
       vi.setSystemTime(now + 5000);
       
       // Make 1 more request (total 3, at limit)
+      expect(limiter.check(3, 'user-sliding')).toBe(true);
+      expect(limiter.check(3, 'user-sliding')).toBe(false);
       expect(await limiter.check(3, 'user-sliding')).toBe(true);
       expect(await limiter.check(3, 'user-sliding')).toBe(false);
       
@@ -151,11 +234,46 @@ describe('RateLimiter', () => {
       
       vi.setSystemTime(now + 10001);
       // First request should be filtered out
+      expect(limiter.check(5, 'user-filter')).toBe(true);
+      expect(await limiter.check(3, 'user-sliding')).toBe(true);
+      expect(await limiter.check(3, 'user-sliding')).toBe(true);
+      expect(await limiter.check(3, 'user-sliding')).toBe(false);
+    });
+
+    it('should filter old timestamps correctly', async () => {
+      const now = Date.now();
+      vi.setSystemTime(now);
+      
+      await limiter.check(5, 'user-filter');
+      
+      vi.setSystemTime(now + 5000);
+      await limiter.check(5, 'user-filter');
+      
+      vi.setSystemTime(now + 10001);
+      // First request should be filtered out
       expect(await limiter.check(5, 'user-filter')).toBe(true);
     });
   });
 
   describe('check - memory management', () => {
+    it('should handle many different tokens', async () => {
+      // Create 600 unique tokens (more than LRU_CACHE_SIZE of 500)
+      for (let i = 0; i < 600; i++) {
+        expect(await limiter.check(1, `user-${i}`)).toBe(true);
+      }
+      
+      // Should not crash or leak memory
+      expect(await limiter.check(1, 'user-new')).toBe(true);
+    });
+
+    it('should cleanup old entries when cache is full', async () => {
+      // Fill cache beyond limit
+      for (let i = 0; i < 700; i++) {
+        await limiter.check(1, `cache-user-${i}`);
+      }
+      
+      // System should still work
+      expect(limiter.check(1, 'cache-user-new')).toBe(true);
     it('should handle many different tokens', async () => {
       // Create 600 unique tokens (more than LRU_CACHE_SIZE of 500)
       for (let i = 0; i < 600; i++) {
@@ -212,11 +330,52 @@ describe('RateLimiter', () => {
 
     it('should handle very large limits', async () => {
       const largeLimit = 1000000;
+      expect(limiter.check(largeLimit, 'user-large')).toBe(true);
+    it('should handle empty string tokens', async () => {
+      expect(await limiter.check(3, '')).toBe(true);
+      expect(await limiter.check(3, '')).toBe(true);
+      expect(await limiter.check(3, '')).toBe(true);
+      expect(await limiter.check(3, '')).toBe(false);
+    });
+
+    it('should handle special character tokens', async () => {
+      const specialToken = 'user@example.com:192.168.1.1';
+      expect(await limiter.check(2, specialToken)).toBe(true);
+      expect(await limiter.check(2, specialToken)).toBe(true);
+      expect(await limiter.check(2, specialToken)).toBe(false);
+    });
+
+    it('should handle Unicode tokens', async () => {
+      const unicodeToken = 'user-🛡️-test';
+      expect(await limiter.check(2, unicodeToken)).toBe(true);
+      expect(await limiter.check(2, unicodeToken)).toBe(true);
+      expect(await limiter.check(2, unicodeToken)).toBe(false);
+    });
+
+    it('should handle very long tokens', async () => {
+      const longToken = 'a'.repeat(1000);
+      expect(await limiter.check(1, longToken)).toBe(true);
+      expect(await limiter.check(1, longToken)).toBe(false);
+    });
+
+    it('should handle negative limits as always blocked', async () => {
+      expect(await limiter.check(-1, 'user-negative')).toBe(false);
+      expect(await limiter.check(-5, 'user-negative-2')).toBe(false);
+    });
+
+    it('should handle very large limits', async () => {
+      const largeLimit = 1000000;
       expect(await limiter.check(largeLimit, 'user-large')).toBe(true);
     });
   });
 
   describe('check - concurrent requests', () => {
+    it('should handle rapid successive requests', async () => {
+      const promises = [];
+      for (let i = 0; i < 10; i++) {
+        promises.push(limiter.check(5, 'user-rapid'));
+      }
+      
     it('should handle rapid successive requests', async () => {
       const promises = [];
       for (let i = 0; i < 10; i++) {
@@ -239,6 +398,22 @@ describe('RateLimiter', () => {
       tokens.forEach(token => results.set(token, []));
 
       // Execute checks sequentially for determinism in this test structure
+      // Execute checks sequentially for determinism in this test structure,
+      // though parallel would be better if we weren't just checking basic state
+      for (const token of tokens) {
+        for (let i = 0; i < 5; i++) {
+          results.get(token)!.push(await limiter.check(3, token));
+        }
+      });
+    it('should maintain consistency with multiple tokens', async () => {
+      const tokens = ['user-1', 'user-2', 'user-3'];
+      const results = new Map<string, boolean[]>();
+      
+      // Initialize arrays
+      tokens.forEach(token => results.set(token, []));
+
+      // Execute checks sequentially for determinism in this test structure,
+      // though parallel would be better if we weren't just checking basic state
       for (const token of tokens) {
         for (let i = 0; i < 5; i++) {
           results.get(token)!.push(await limiter.check(3, token));
@@ -254,6 +429,7 @@ describe('RateLimiter', () => {
   });
 
   describe('check - realistic usage patterns', () => {
+    it('should handle API rate limiting scenario', () => {
     it('should handle API rate limiting scenario', async () => {
       const apiKey = 'api-key-123';
       const limit = 10; // 10 requests per window
@@ -268,12 +444,37 @@ describe('RateLimiter', () => {
       expect(await limiter.check(limit, apiKey)).toBe(false);
     });
 
+    it('should handle login attempt rate limiting', () => {
+        expect(await limiter.check(limit, apiKey)).toBe(true);
+      }
+      
+      // Additional requests denied
+      expect(await limiter.check(limit, apiKey)).toBe(false);
+      expect(await limiter.check(limit, apiKey)).toBe(false);
+    });
+
     it('should handle login attempt rate limiting', async () => {
       const ip = '10.0.0.1';
       const maxAttempts = 5;
       
       // Simulate failed login attempts
       for (let i = 0; i < maxAttempts; i++) {
+        expect(await limiter.check(maxAttempts, ip)).toBe(true);
+      }
+      
+      // Should block further attempts
+      expect(await limiter.check(maxAttempts, ip)).toBe(false);
+    });
+
+    it('should handle distributed user requests', async () => {
+      const users = Array.from({ length: 50 }, (_, i) => `user-${i}`);
+      
+      users.forEach(user => {
+        expect(limiter.check(3, user)).toBe(true);
+        expect(limiter.check(3, user)).toBe(true);
+        expect(limiter.check(3, user)).toBe(true);
+        expect(limiter.check(3, user)).toBe(false);
+      });
         expect(await limiter.check(maxAttempts, ip)).toBe(true);
       }
       
@@ -306,11 +507,29 @@ describe('RateLimiter', () => {
 
     it('should not leak timing information', async () => {
       const startNew = Date.now();
+      limiter.check(5, 'timing-new');
+    it('should prevent token enumeration attacks', async () => {
+      // Attacker trying many tokens to find valid ones
+      const suspiciousTokens = Array.from({ length: 100 }, (_, i) => `probe-${i}`);
+      
+      for (const token of suspiciousTokens) {
+        const result = await limiter.check(1, token);
+        expect(typeof result).toBe('boolean');
+      }
+    });
+
+    it('should not leak timing information', async () => {
+      const startNew = Date.now();
       await limiter.check(5, 'timing-new');
       const timeNew = Date.now() - startNew;
       
       // Use up limit
       for (let i = 0; i < 5; i++) {
+        await limiter.check(5, 'timing-used');
+      }
+      
+      const startUsed = Date.now();
+      limiter.check(5, 'timing-used');
         await limiter.check(5, 'timing-used');
       }
       
@@ -331,11 +550,36 @@ describe('RateLimiter', () => {
       }
       
       // System should still function (cleanup mechanism)
+      expect(() => limiter.check(1, 'legit-user')).not.toThrow();
+    it('should handle potential DoS with many unique tokens', async () => {
+      // Attacker creates many unique tokens to fill memory
+      for (let i = 0; i < 1000; i++) {
+        await limiter.check(1, `dos-token-${i}`);
+      }
+      
+      // System should still function (cleanup mechanism)
       await expect(limiter.check(1, 'legit-user')).resolves.not.toThrow();
     });
   });
 
   describe('check - boundary conditions', () => {
+    it('should handle exactly at limit', async () => {
+      for (let i = 0; i < 10; i++) {
+        expect(await limiter.check(10, 'boundary-user')).toBe(true);
+      }
+      expect(await limiter.check(10, 'boundary-user')).toBe(false);
+    });
+
+    it('should handle just under limit', async () => {
+      for (let i = 0; i < 9; i++) {
+        expect(await limiter.check(10, 'under-limit')).toBe(true);
+      }
+      expect(await limiter.check(10, 'under-limit')).toBe(true); // 10th request
+      expect(await limiter.check(10, 'under-limit')).toBe(false); // 11th request
+    });
+
+    it('should handle first request', () => {
+      expect(limiter.check(5, 'first-request-user')).toBe(true);
     it('should handle exactly at limit', async () => {
       for (let i = 0; i < 10; i++) {
         expect(await limiter.check(10, 'boundary-user')).toBe(true);

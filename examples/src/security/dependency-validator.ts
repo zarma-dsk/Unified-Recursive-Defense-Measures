@@ -5,6 +5,7 @@
 
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 interface AuditResult {
   vulnerabilities: Record<string, any>;
@@ -20,6 +21,7 @@ interface AuditResult {
   };
 }
 
+export function validateDependencies() {
 /**
  * Performs an npm security audit and enforces policy by failing the process if high or critical vulnerabilities are present.
  *
@@ -67,5 +69,9 @@ function validateDependencies() {
   }
 }
 
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  validateDependencies();
+}
+validateDependencies();
 validateDependencies();
 validateDependencies();

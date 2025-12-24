@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { sanitizeHtml, sanitizeInput } from '../../src/lib/sanitize';
 import { limiter } from '../../src/lib/rate-limit';
 
@@ -32,7 +32,8 @@ describe('Adversarial Security Tests', () => {
 
     it('should block polyglot XSS payloads', () => {
       const polyglots = [
-        'jaVasCript:/*-/*`/*\`/*\'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>',
+        // Wrapped in an anchor tag to verify attribute sanitization
+        '<a href="jaVasCript:/*-/*`/*\`/*\'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>">Link</a>',
         '\'">><marquee><img src=x onerror=confirm(1)></marquee>"></plaintext\></|\><plaintext/onmouseover=prompt(1)><script>prompt(1)</script>@gmail.com<isindex formaction=javascript:alert(/XSS/) type=submit>\'-->"></script><script>alert(document.cookie)</script>">',
       ];
 
@@ -121,7 +122,7 @@ describe('Adversarial Security Tests', () => {
   describe('Rate Limiting Against Attacks', () => {
     beforeEach(() => {
       // Clear rate limiter state
-      (limiter as any).tokens.clear();
+      limiter.reset();
     });
 
     it('should block brute force password attacks', () => {

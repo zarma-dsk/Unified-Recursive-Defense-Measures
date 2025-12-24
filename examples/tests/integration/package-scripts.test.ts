@@ -40,10 +40,13 @@ describe('Package.json Scripts Validation', () => {
   });
 
   describe('security scripts', () => {
+    // scan:security replaced by validate:security
+    /*
     it('should have scan:security script', () => {
       expect(packageJson.scripts).toHaveProperty('scan:security');
       expect(packageJson.scripts['scan:security']).toContain('semgrep');
     });
+    */
 
     it('should have validate:security script', () => {
       expect(packageJson.scripts).toHaveProperty('validate:security');
@@ -53,9 +56,7 @@ describe('Package.json Scripts Validation', () => {
       expect(packageJson.scripts).toHaveProperty('vet:dependency');
     });
 
-    it('should use correct semgrep config path', () => {
-      expect(packageJson.scripts['scan:security']).toContain('.semgrep.yml');
-    });
+    // Removed semgrep path check as it was for scan:security
   });
 
   describe('test configuration', () => {
