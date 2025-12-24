@@ -5,6 +5,7 @@
 
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 interface AuditResult {
   vulnerabilities: Record<string, any>;
@@ -20,7 +21,7 @@ interface AuditResult {
   };
 }
 
-function validateDependencies() {
+export function validateDependencies() {
   console.log('🔍 Vetting dependencies...');
 
   if (!fs.existsSync('package.json')) {
@@ -61,4 +62,6 @@ function validateDependencies() {
   }
 }
 
-validateDependencies();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  validateDependencies();
+}

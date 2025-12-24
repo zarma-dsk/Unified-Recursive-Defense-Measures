@@ -4,6 +4,7 @@ describe('Remove Local NPM Script', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    vi.resetModules();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
@@ -13,11 +14,8 @@ describe('Remove Local NPM Script', () => {
 
   describe('script execution', () => {
     it('should log cleaning message', async () => {
-      try {
-        await import('../../../scripts/remove-local-npm');
-      } catch (e) {
-        // Ignore execution errors
-      }
+      const { run } = await import('../../../scripts/remove-local-npm');
+      run();
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('Cleaning up environment')
@@ -25,11 +23,8 @@ describe('Remove Local NPM Script', () => {
     });
 
     it('should log completion message', async () => {
-      try {
-        await import('../../../scripts/remove-local-npm');
-      } catch (e) {
-        // Ignore
-      }
+      const { run } = await import('../../../scripts/remove-local-npm');
+      run();
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('Environment ready')
@@ -37,17 +32,13 @@ describe('Remove Local NPM Script', () => {
     });
 
     it('should execute without errors', async () => {
-      await expect(
-        import('../../../scripts/remove-local-npm')
-      ).resolves.toBeDefined();
+      const { run } = await import('../../../scripts/remove-local-npm');
+      expect(() => run()).not.toThrow();
     });
 
     it('should log cleanup emoji', async () => {
-      try {
-        await import('../../../scripts/remove-local-npm');
-      } catch (e) {
-        // Ignore
-      }
+      const { run } = await import('../../../scripts/remove-local-npm');
+      run();
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('🧹')
@@ -55,11 +46,8 @@ describe('Remove Local NPM Script', () => {
     });
 
     it('should log success emoji', async () => {
-      try {
-        await import('../../../scripts/remove-local-npm');
-      } catch (e) {
-        // Ignore
-      }
+      const { run } = await import('../../../scripts/remove-local-npm');
+      run();
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('✅')
@@ -99,8 +87,9 @@ describe('Remove Local NPM Script', () => {
 
     it('should be idempotent', async () => {
       // Running multiple times should be safe
-      await import('../../../scripts/remove-local-npm');
-      await import('../../../scripts/remove-local-npm');
+      const { run } = await import('../../../scripts/remove-local-npm');
+      run();
+      run();
       
       expect(consoleLogSpy).toHaveBeenCalled();
     });
@@ -109,11 +98,11 @@ describe('Remove Local NPM Script', () => {
   describe('script placement', () => {
     it('should be in scripts directory', async () => {
       const fs = await import('node:fs');
-      expect(fs.existsSync('scripts/remove-local-npm.ts')).toBe(true);
+      expect(fs.existsSync('examples/scripts/remove-local-npm.ts')).toBe(true);
     });
 
     it('should be a TypeScript file', () => {
-      expect('scripts/remove-local-npm.ts').toMatch(/\.ts$/);
+      expect('examples/scripts/remove-local-npm.ts').toMatch(/\.ts$/);
     });
   });
 });

@@ -4,15 +4,16 @@
  */
 
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const REQUIRED_FILES = [
-  'src/lib/sanitize.ts',
-  'src/lib/rate-limit.ts',
-  'src/lib/logger.ts',
-  '.github/workflows/ci.yml'
+  'examples/src/lib/sanitize.ts',
+  'examples/src/lib/rate-limit.ts',
+  'examples/src/lib/logger.ts',
+  'examples/ci.yml'
 ];
 
-function checkRequiredFiles() {
+export function checkRequiredFiles() {
   console.log('🔍 Checking for required security files...');
   let missing = false;
 
@@ -31,10 +32,13 @@ function checkRequiredFiles() {
   }
 }
 
-function run() {
+export function run() {
   console.log('🛡️ Starting Antigravity Security Validation...');
   checkRequiredFiles();
   console.log('✅ All security checks passed.');
 }
 
-run();
+// Execute if run directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run();
+}

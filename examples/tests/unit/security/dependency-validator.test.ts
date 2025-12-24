@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
+
+// Mock child_process to avoid running real npm audit
+vi.mock('node:child_process', () => ({
+  execSync: vi.fn(),
+}));
 
 describe('Dependency Validator', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -8,12 +14,28 @@ describe('Dependency Validator', () => {
   let fsExistsSyncSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    vi.resetModules(); // Ensure module is re-loaded for each test
+
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
       throw new Error(`Process exit called with code ${code}`);
     });
     fsExistsSyncSpy = vi.spyOn(fs, 'existsSync');
+
+    // Default mock for execSync to return safe result
+    (execSync as any).mockReturnValue(JSON.stringify({
+      metadata: {
+        vulnerabilities: {
+          info: 0,
+          low: 0,
+          moderate: 0,
+          high: 0,
+          critical: 0,
+          total: 0
+        }
+      }
+    }));
   });
 
   afterEach(() => {
@@ -24,8 +46,9 @@ describe('Dependency Validator', () => {
     it('should log start message', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { validateDependencies } = await import('../../../src/security/dependency-validator');
       try {
-        await import('../../../src/security/dependency-validator');
+        validateDependencies();
       } catch (e) {
         // Ignore execution errors
       }
@@ -38,8 +61,9 @@ describe('Dependency Validator', () => {
     it('should check for package.json existence', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { validateDependencies } = await import('../../../src/security/dependency-validator');
       try {
-        await import('../../../src/security/dependency-validator');
+        validateDependencies();
       } catch (e) {
         // Ignore
       }
@@ -50,8 +74,9 @@ describe('Dependency Validator', () => {
     it('should exit with error if package.json not found', async () => {
       fsExistsSyncSpy.mockReturnValue(false);
       
+      const { validateDependencies } = await import('../../../src/security/dependency-validator');
       try {
-        await import('../../../src/security/dependency-validator');
+        validateDependencies();
         expect.fail('Should have thrown');
       } catch (e: any) {
         expect(e.message).toContain('Process exit called with code 1');
@@ -65,8 +90,9 @@ describe('Dependency Validator', () => {
     it('should log success message when validation passes', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { validateDependencies } = await import('../../../src/security/dependency-validator');
       try {
-        await import('../../../src/security/dependency-validator');
+        validateDependencies();
       } catch (e) {
         // Ignore
       }
@@ -79,15 +105,16 @@ describe('Dependency Validator', () => {
     it('should log no critical issues found', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { validateDependencies } = await import('../../../src/security/dependency-validator');
       try {
-        await import('../../../src/security/dependency-validator');
+        validateDependencies();
       } catch (e) {
         // Ignore
       }
       
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('No critical issues found')
-      );
+      // Check the last call
+      const lastCallArgs = consoleLogSpy.mock.calls[consoleLogSpy.mock.calls.length - 1];
+      expect(lastCallArgs[0]).toContain('No high/critical issues found');
     });
   });
 

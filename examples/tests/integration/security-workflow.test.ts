@@ -16,15 +16,15 @@ describe('Security Workflow Integration', () => {
       // Should not throw
     });
 
-    it('should rate limit then log attempt', () => {
+    it('should rate limit then log attempt', async () => {
       const userId = 'test-user-123';
       
       // Use up rate limit
       for (let i = 0; i < 5; i++) {
-        limiter.check(5, userId);
+        await limiter.check(5, userId);
       }
       
-      const isAllowed = limiter.check(5, userId);
+      const isAllowed = await limiter.check(5, userId);
       expect(isAllowed).toBe(false);
       
       logger.warn('Rate limit exceeded', { userId, allowed: isAllowed });
@@ -79,12 +79,12 @@ describe('Security Workflow Integration', () => {
   });
 
   describe('security primitives integration', () => {
-    it('should work together: rate limit + sanitize + log', () => {
+    it('should work together: rate limit + sanitize + log', async () => {
       const userId = 'integrated-user';
       const userInput = '  <p>User comment</p>  ';
       
       // Check rate limit
-      const allowed = limiter.check(10, userId);
+      const allowed = await limiter.check(10, userId);
       
       if (allowed) {
         // Sanitize input
@@ -104,12 +104,12 @@ describe('Security Workflow Integration', () => {
       expect(allowed).toBe(true);
     });
 
-    it('should log security events with rate limiting', () => {
+    it('should log security events with rate limiting', async () => {
       const attacker = 'attacker-ip-123';
       
       // Simulate attack attempts
       for (let i = 0; i < 20; i++) {
-        const allowed = limiter.check(5, attacker);
+        const allowed = await limiter.check(5, attacker);
         
         if (!allowed) {
           logger.warn('Rate limit exceeded - potential attack', {
@@ -127,12 +127,11 @@ describe('Security Workflow Integration', () => {
   describe('configuration validation', () => {
     it('should have all required security files', () => {
       const requiredFiles = [
-        'src/lib/sanitize.ts',
-        'src/lib/rate-limit.ts',
-        'src/lib/logger.ts',
+        'examples/src/lib/sanitize.ts',
+        'examples/src/lib/rate-limit.ts',
+        'examples/src/lib/logger.ts',
         '.semgrep.yml',
-        'examples/.semgrep.yml',
-        'vitest.config.ts'
+        'examples/vitest.config.ts'
       ];
       
       requiredFiles.forEach(file => {
@@ -142,9 +141,9 @@ describe('Security Workflow Integration', () => {
 
     it('should have security validation scripts', () => {
       const securityScripts = [
-        'scripts/validate-security.ts',
-        'scripts/remove-local-npm.ts',
-        'src/security/dependency-validator.ts'
+        'examples/scripts/validate-security.ts',
+        'examples/scripts/remove-local-npm.ts',
+        'examples/src/security/dependency-validator.ts'
       ];
       
       securityScripts.forEach(script => {
@@ -153,9 +152,9 @@ describe('Security Workflow Integration', () => {
     });
 
     it('should have test infrastructure', () => {
-      expect(fs.existsSync('tests/unit')).toBe(true);
-      expect(fs.existsSync('tests/integration')).toBe(true);
-      expect(fs.existsSync('vitest.config.ts')).toBe(true);
+      expect(fs.existsSync('examples/tests/unit')).toBe(true);
+      expect(fs.existsSync('examples/tests/integration')).toBe(true);
+      expect(fs.existsSync('examples/vitest.config.ts')).toBe(true);
     });
   });
 
@@ -175,7 +174,7 @@ describe('Security Workflow Integration', () => {
         '<script>alert("xss")</script>',
         '<img src=x onerror="alert(1)">',
         '<svg onload="alert(1)">',
-        'javascript:alert(1)',
+        '<a href="javascript:alert(1)">Click me</a>',
       ];
       
       xssAttacks.forEach(attack => {
@@ -187,13 +186,13 @@ describe('Security Workflow Integration', () => {
       });
     });
 
-    it('should defend against DoS via rate limiting', () => {
+    it('should defend against DoS via rate limiting', async () => {
       const attacker = 'dos-attacker';
       let blockedCount = 0;
       
       // Simulate DoS attack
       for (let i = 0; i < 100; i++) {
-        const allowed = limiter.check(10, attacker);
+        const allowed = await limiter.check(10, attacker);
         if (!allowed) blockedCount++;
       }
       
@@ -235,13 +234,15 @@ describe('Security Workflow Integration', () => {
       expect(duration).toBeLessThan(5000);
     });
 
-    it('should handle high volume of rate limit checks', () => {
+    it('should handle high volume of rate limit checks', async () => {
       const iterations = 1000;
       const startTime = Date.now();
       
+      const promises = [];
       for (let i = 0; i < iterations; i++) {
-        limiter.check(100, `user-${i}`);
+        promises.push(limiter.check(100, `user-${i}`));
       }
+      await Promise.all(promises);
       
       const duration = Date.now() - startTime;
       

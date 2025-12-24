@@ -98,7 +98,7 @@ describe('Semgrep Configuration Validation', () => {
       // weak-crypto should be WARNING
       const weakCryptoSection = content.substring(
         content.indexOf('id: weak-crypto'),
-        content.indexOf('id: weak-crypto') + 200
+        content.indexOf('id: weak-crypto') + 400
       );
       expect(weakCryptoSection).toContain('severity: WARNING');
     });

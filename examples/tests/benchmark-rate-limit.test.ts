@@ -2,15 +2,17 @@ import { describe, it, expect, bench } from 'vitest';
 import { limiter } from '../src/lib/rate-limit';
 
 describe('RateLimiter Performance', () => {
-  it('should handle high volume of requests efficiently', () => {
+  it('should handle high volume of requests efficiently', async () => {
     const token = 'benchmark-user';
     const limit = 100;
     const start = performance.now();
     const iterations = 10000;
 
+    const promises = [];
     for (let i = 0; i < iterations; i++) {
-      limiter.check(limit, token);
+      promises.push(limiter.check(limit, token));
     }
+    await Promise.all(promises);
 
     const end = performance.now();
     const duration = end - start;

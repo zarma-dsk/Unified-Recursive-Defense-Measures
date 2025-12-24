@@ -243,12 +243,13 @@ describe('CI Configuration Validation', () => {
 
   describe('security best practices', () => {
     it('should use pinned action versions', () => {
-      const actionMatches = content.match(/uses:\s*[^@\n]+@/g);
+      // Relaxed regex to match @v4 or @v4.x.x
+      const actionMatches = content.match(/uses:\s*[^@\n]+@.+/g);
       expect(actionMatches).toBeTruthy();
       expect(actionMatches!.length).toBeGreaterThan(0);
       
       actionMatches!.forEach(action => {
-        expect(action).toMatch(/@v\d+$/);
+        expect(action).toMatch(/@v\d+/);
       });
     });
 

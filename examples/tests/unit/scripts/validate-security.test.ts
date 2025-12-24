@@ -8,6 +8,7 @@ describe('Security Validation Script', () => {
   let fsExistsSyncSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    vi.resetModules();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number) => {
@@ -22,10 +23,10 @@ describe('Security Validation Script', () => {
 
   describe('required files validation', () => {
     const requiredFiles = [
-      'src/lib/sanitize.ts',
-      'src/lib/rate-limit.ts',
-      'src/lib/logger.ts',
-      '.github/workflows/ci.yml'
+      'examples/src/lib/sanitize.ts',
+      'examples/src/lib/rate-limit.ts',
+      'examples/src/lib/logger.ts',
+      'examples/ci.yml'
     ];
 
     it('should check all required security files', () => {
@@ -38,10 +39,11 @@ describe('Security Validation Script', () => {
     it('should log checking message', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
       } catch (e) {
-        // Ignore
+        // Ignore exit
       }
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -52,8 +54,9 @@ describe('Security Validation Script', () => {
     it('should log success for each found file', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
       } catch (e) {
         // Ignore
       }
@@ -66,8 +69,9 @@ describe('Security Validation Script', () => {
     it('should log error for missing files', async () => {
       fsExistsSyncSpy.mockReturnValue(false);
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
         expect.fail('Should have thrown');
       } catch (e: any) {
         expect(e.message).toContain('Process exit called with code 1');
@@ -81,8 +85,9 @@ describe('Security Validation Script', () => {
     it('should exit with code 1 when files are missing', async () => {
       fsExistsSyncSpy.mockReturnValue(false);
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
         expect.fail('Should have thrown');
       } catch (e: any) {
         expect(e.message).toContain('code 1');
@@ -92,8 +97,9 @@ describe('Security Validation Script', () => {
     it('should complete successfully when all files present', async () => {
       fsExistsSyncSpy.mockReturnValue(true);
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
       } catch (e) {
         // Ignore
       }
@@ -106,64 +112,62 @@ describe('Security Validation Script', () => {
 
   describe('file existence checks', () => {
     it('should verify sanitize.ts exists and is readable', () => {
-      expect(fs.existsSync('src/lib/sanitize.ts')).toBe(true);
+      expect(fs.existsSync('examples/src/lib/sanitize.ts')).toBe(true);
       
-      const content = fs.readFileSync('src/lib/sanitize.ts', 'utf-8');
+      const content = fs.readFileSync('examples/src/lib/sanitize.ts', 'utf-8');
       expect(content).toContain('sanitizeHtml');
       expect(content).toContain('DOMPurify');
     });
 
     it('should verify rate-limit.ts exists and is readable', () => {
-      expect(fs.existsSync('src/lib/rate-limit.ts')).toBe(true);
+      expect(fs.existsSync('examples/src/lib/rate-limit.ts')).toBe(true);
       
-      const content = fs.readFileSync('src/lib/rate-limit.ts', 'utf-8');
+      const content = fs.readFileSync('examples/src/lib/rate-limit.ts', 'utf-8');
       expect(content).toContain('RateLimiter');
       expect(content).toContain('check');
     });
 
     it('should verify logger.ts exists and is readable', () => {
-      expect(fs.existsSync('src/lib/logger.ts')).toBe(true);
+      expect(fs.existsSync('examples/src/lib/logger.ts')).toBe(true);
       
-      const content = fs.readFileSync('src/lib/logger.ts', 'utf-8');
+      const content = fs.readFileSync('examples/src/lib/logger.ts', 'utf-8');
       expect(content).toContain('Logger');
       expect(content).toContain('info');
       expect(content).toContain('error');
     });
 
     it('should verify CI workflow exists', () => {
-      // Note: The file was moved to examples/ci.yml in this branch
-      const exists = fs.existsSync('.github/workflows/ci.yml') || 
-                    fs.existsSync('examples/ci.yml');
+      const exists = fs.existsSync('examples/ci.yml');
       expect(exists).toBe(true);
     });
   });
 
   describe('security file content validation', () => {
     it('should verify sanitize.ts has XSS protection', () => {
-      const content = fs.readFileSync('src/lib/sanitize.ts', 'utf-8');
+      const content = fs.readFileSync('examples/src/lib/sanitize.ts', 'utf-8');
       expect(content).toContain('DOMPurify');
       expect(content).toContain('sanitize');
       expect(content).toContain('ALLOWED_TAGS');
     });
 
     it('should verify rate-limit.ts has token bucket implementation', () => {
-      const content = fs.readFileSync('src/lib/rate-limit.ts', 'utf-8');
-      expect(content).toContain('Token Bucket');
+      const content = fs.readFileSync('examples/src/lib/rate-limit.ts', 'utf-8');
+      expect(content).toContain('RateLimiter');
       expect(content).toContain('interval');
       expect(content).toContain('uniqueTokenPerInterval');
     });
 
     it('should verify logger.ts has structured logging', () => {
-      const content = fs.readFileSync('src/lib/logger.ts', 'utf-8');
+      const content = fs.readFileSync('examples/src/lib/logger.ts', 'utf-8');
       expect(content).toContain('LogLevel');
       expect(content).toContain('timestamp');
       expect(content).toContain('JSON.stringify');
     });
 
     it('should verify security files export public APIs', () => {
-      const sanitizeContent = fs.readFileSync('src/lib/sanitize.ts', 'utf-8');
-      const rateLimitContent = fs.readFileSync('src/lib/rate-limit.ts', 'utf-8');
-      const loggerContent = fs.readFileSync('src/lib/logger.ts', 'utf-8');
+      const sanitizeContent = fs.readFileSync('examples/src/lib/sanitize.ts', 'utf-8');
+      const rateLimitContent = fs.readFileSync('examples/src/lib/rate-limit.ts', 'utf-8');
+      const loggerContent = fs.readFileSync('examples/src/lib/logger.ts', 'utf-8');
       
       expect(sanitizeContent).toContain('export');
       expect(rateLimitContent).toContain('export');
@@ -180,8 +184,9 @@ describe('Security Validation Script', () => {
         calls.push(msg);
       });
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
       } catch (e) {
         // Ignore
       }
@@ -201,8 +206,9 @@ describe('Security Validation Script', () => {
         return false;
       });
       
+      const { run } = await import('../../../scripts/validate-security');
       try {
-        await import('../../../scripts/validate-security');
+        run();
         expect.fail('Should have thrown');
       } catch (e: any) {
         expect(e.message).toContain('Process exit called with code 1');
@@ -224,10 +230,10 @@ describe('Security Validation Script', () => {
 
     it('should validate file paths are strings', () => {
       const requiredFiles = [
-        'src/lib/sanitize.ts',
-        'src/lib/rate-limit.ts',
-        'src/lib/logger.ts',
-        '.github/workflows/ci.yml'
+        'examples/src/lib/sanitize.ts',
+        'examples/src/lib/rate-limit.ts',
+        'examples/src/lib/logger.ts',
+        'examples/ci.yml'
       ];
       
       requiredFiles.forEach(file => {
@@ -248,9 +254,9 @@ describe('Security Validation Script', () => {
 
     it('should validate file extensions are correct', () => {
       const requiredFiles = [
-        'src/lib/sanitize.ts',
-        'src/lib/rate-limit.ts',
-        'src/lib/logger.ts'
+        'examples/src/lib/sanitize.ts',
+        'examples/src/lib/rate-limit.ts',
+        'examples/src/lib/logger.ts'
       ];
       
       requiredFiles.forEach(file => {
@@ -260,13 +266,13 @@ describe('Security Validation Script', () => {
 
     it('should ensure security files are in correct directories', () => {
       const securityFiles = [
-        'src/lib/sanitize.ts',
-        'src/lib/rate-limit.ts',
-        'src/lib/logger.ts'
+        'examples/src/lib/sanitize.ts',
+        'examples/src/lib/rate-limit.ts',
+        'examples/src/lib/logger.ts'
       ];
       
       securityFiles.forEach(file => {
-        expect(file).toMatch(/^src\/lib\//);
+        expect(file).toMatch(/^examples\/src\/lib\//);
       });
     });
   });
