@@ -13,12 +13,12 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest --config examples/github-workflows/vitest.config.ts",
-    "test:unit": "vitest run examples/github-workflows/tests/unit --config examples/github-workflows/vitest.config.ts",
-    "test:adversarial": "vitest run examples/github-workflows/tests/adversarial --config examples/github-workflows/vitest.config.ts",
-    "vet:dependency": "tsx examples/github-workflows/src/security/dependency-validator.ts",
-    "validate:security": "tsx examples/github-workflows/scripts/validate-security.ts",
-    "postinstall": "tsx examples/github-workflows/scripts/remove-local-npm.ts"
+    "test": "vitest --config examples/vitest.config.ts",
+    "test:unit": "vitest run examples/tests/unit --config examples/vitest.config.ts",
+    "test:adversarial": "vitest run examples/tests/adversarial --config examples/vitest.config.ts",
+    "vet:dependency": "tsx examples/src/security/dependency-validator.ts",
+    "validate:security": "tsx examples/scripts/validate-security.ts",
+    "postinstall": "tsx examples/scripts/remove-local-npm.ts"
   },
   "version": "1.0.0",
   "description": "This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).",

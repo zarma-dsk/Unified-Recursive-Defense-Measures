@@ -28,16 +28,32 @@ class RateLimiter {
     const now = Date.now();
     const windowStart = now - this.config.interval;
 
-    let timestamps = this.tokens.get(token) || [];
+    let timestamps = this.tokens.get(token);
     
-    // Filter out timestamps older than the window
-    timestamps = timestamps.filter((t) => t > windowStart);
+    if (!timestamps) {
+      timestamps = [];
+    } else {
+      // Optimize: Timestamps are sorted, so we can find the cutoff and slice
+      // This is faster than filter() which checks every element and allocates incrementally
+      const firstValidIndex = timestamps.findIndex((t) => t > windowStart);
+      if (firstValidIndex === -1) {
+        // No valid timestamps (all expired)
+        timestamps = [];
+      } else if (firstValidIndex > 0) {
+        // Remove expired timestamps
+        timestamps = timestamps.slice(firstValidIndex);
+      }
+    }
 
     if (timestamps.length >= limit) {
       return false;
     }
 
     timestamps.push(now);
+
+    // LRU Optimization: Delete and re-set to move this key to the end of the Map (most recently used)
+    // This ensures that the cleanup logic below actually removes the *least* recently used items.
+    this.tokens.delete(token);
     this.tokens.set(token, timestamps);
 
     // Basic cleanup to prevent memory leaks (LRU-like behavior would be better)
