@@ -1,0 +1,38 @@
+name: Antigravity CI
+
+on:
+  push:
+    branches: [main, master, mvp]
+  pull_request:
+    branches: [main, master, mvp]
+
+jobs:
+  validate:
+    name: Security & Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Linting
+        run: npm run lint
+
+      - name: Type Checking
+        run: npm run typecheck
+
+      - name: Security Validation
+        run: npm run validate:security
+
+      - name: Supply Chain Vet
+        run: npm run vet:dependency
+
+      - name: Unit Tests
+        run: npm run test:unit
